@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root {
+    --active-blue: #0068FA;
+    --light-grey: #F0F0F0;
+    --medium-grey: #E0E0E0;
+    --dark-grey: #888;
+    --text-color: #333;
+    --bg-color: #FFF;
+  }
+  body {
+    font-family: 'Inter', sans-serif;
+    padding: 16px;
+    margin: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+  }
+  #title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+  .options-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px; /* Space before progress bar */
+  }
+  .option-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+  .option-row label {
+    font-size: 13px;
+  }
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 38px;
+    height: 22px;
+  }
+  .switch input { display: none; }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: var(--medium-grey);
+    transition: .2s;
+    border-radius: 22px;
+  }
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 16px; width: 16px;
+    left: 3px; bottom: 3px;
+    background-color: white;
+    transition: .2s;
+    border-radius: 50%;
+  }
+  input:checked + .slider {
+    background-color: var(--active-blue);
+  }
+  input:checked + .slider:before {
+    transform: translateX(16px);
+  }
+
+  /* --- Progress Bar and Time Estimate Styles --- */
+  #progress-container {
+    width: 100%;
+    height: 8px;
+    background-color: var(--light-grey);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  #progress-bar {
+    width: 0%;
+    height: 100%;
+    background-color: var(--active-blue);
+    transition: width 0.1s ease-in-out;
+  }
+  #time-estimate {
+    font-size: 12px;
+    color: var(--dark-grey);
+    text-align: center;
+    height: 16px; /* Reserve space to prevent layout shifts */
+  }
+
+  button {
+    width: 100%;
+    margin-top: 16px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+    background-color: var(--active-blue);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: opacity .2s;
+  }
+  button:hover { opacity: 0.85; }
+  button:disabled {
+      background-color: var(--medium-grey);
+      cursor: not-allowed;
+  }
+  #error-message {
+    color: #D32F2F;
+    font-size: 12px;
+    margin-top: 8px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div id="title">Design Spec Options</div>
+
+<div class="options-container">
+  <div class="option-row">
+    <label for="layout">Layout & Spacing</label>
+    <label class="switch">
+      <input type="checkbox" id="layout" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+  <div class="option-row">
+    <label for="colors">Colors</label>
+    <label class="switch">
+      <input type="checkbox" id="colors" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+  <div class="option-row">
+    <label for="radius">Radius</label>
+    <label class="switch">
+      <input type="checkbox" id="radius" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+  <div class="option-row">
+    <label for="text">Text</label>
+    <label class="switch">
+      <input type="checkbox" id="text" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+</div>
+
+<!-- Main progress bar and time estimate -->
+<div id="progress-container" style="display: none;">
+  <div id="progress-bar"></div>
+</div>
+<div id="time-estimate"></div>
+
+<button id="generate-btn">Generate Specs</button>
+<div id="error-message"></div>
+
+<script>
+  const generateBtn = document.getElementById('generate-btn');
+  const errorMessage = document.getElementById('error-message');
+  const progressBar = document.getElementById('progress-bar');
+  const progressContainer = document.getElementById('progress-container');
+  const timeEstimate = document.getElementById('time-estimate');
+
+  let startTime;
+  
+  // --- NEW: For smoothing the time estimate ---
+  let recentEstimates = [];
+  const ESTIMATE_SMOOTHING_FACTOR = 5; // Average over the last 5 estimates
+
+  generateBtn.onclick = () => {
+    const options = {
+      layout: document.getElementById('layout').checked,
+      colors: document.getElementById('colors').checked,
+      radius: document.getElementById('radius').checked,
+      text: document.getElementById('text').checked,
+    };
+    errorMessage.textContent = '';
+    parent.postMessage({ pluginMessage: { type: 'generate-specs', options } }, '*');
+  };
+
+  function formatTime(totalSeconds) {
+    if (isNaN(totalSeconds) || totalSeconds <= 0) {
+      return 'Estimating...';
+    }
+    totalSeconds = Math.round(totalSeconds);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    if (minutes > 0) {
+      return `${minutes} min ${seconds} sec remaining`;
+    }
+    if (seconds > 1) {
+      return `${seconds} seconds remaining`;
+    }
+    return 'About a second remaining';
+  }
+
+  onmessage = (event) => {
+    const msg = event.data.pluginMessage;
+    const type = msg.type;
+
+    if (type === 'loading-start') {
+        generateBtn.disabled = true;
+        generateBtn.textContent = 'Generating...';
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+        timeEstimate.textContent = 'Calculating tasks...';
+        startTime = Date.now();
+        recentEstimates = []; // Reset the estimates array
+    } else if (type === 'loading-progress') {
+        const progress = msg.progress;
+        progressBar.style.width = progress + '%';
+
+        const elapsed = (Date.now() - startTime) / 1000;
+        
+        // Start estimating only after a bit of progress to get a more stable initial reading
+        if (progress > 2 && elapsed > 0.2) {
+          const currentEstimate = (elapsed / (progress / 100)) - elapsed;
+
+          // --- NEW: Add to our array and keep it at a fixed size ---
+          recentEstimates.push(currentEstimate);
+          if (recentEstimates.length > ESTIMATE_SMOOTHING_FACTOR) {
+            recentEstimates.shift(); // Remove the oldest estimate
+          }
+
+          // --- NEW: Calculate the average of the recent estimates ---
+          const smoothedEstimate = recentEstimates.reduce((a, b) => a + b, 0) / recentEstimates.length;
+          
+          timeEstimate.textContent = formatTime(smoothedEstimate);
+        }
+    } else if (type === 'generation-complete' || type === 'error') {
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate Specs';
+        progressContainer.style.display = 'none';
+        
+        if (type === 'generation-complete') {
+            const totalTime = Math.round((Date.now() - startTime) / 1000);
+            timeEstimate.textContent = totalTime > 0 ? `Completed in ${totalTime}s!` : `Completed!`;
+        } else {
+            timeEstimate.textContent = '';
+        }
+    }
+
+    if (type === 'error') {
+      errorMessage.textContent = msg.message;
+    }
+  };
+</script>
+</body>
+</html>

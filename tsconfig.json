@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "es2019",
+    "strict": false,
+    "outDir": "./",
+    "types": [
+      "@figma/plugin-typings"
+    ],
+    "lib": [
+      "es2019"
+    ]
+  },
+  "files": [
+    "code.ts"
+  ]
+}

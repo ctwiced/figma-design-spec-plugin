@@ -1,0 +1,13 @@
+{
+  "name": "design-spec-generator",
+  "version": "1.0.0",
+  "description": "A Figma plugin to generate design specs from a frame.",
+  "main": "code.js",
+  "license": "ISC",
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.113.0"
+  },
+  "dependencies": {
+    "typescript": "^5.8.3"
+  }
+}
