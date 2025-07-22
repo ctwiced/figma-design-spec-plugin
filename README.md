@@ -3,7 +3,7 @@
 A Figma plugin that automates the tedious process of creating detailed design specifications. Select any frame, component, or group, and this plugin will instantly generate comprehensive spec sheets for spacing, colors, radii, and typography.
 
 ![Design Spec Plugin UI](https://i.imgur.com/your-image-url.png) 
-*Replace the link above with a URL to a screenshot of your plugin!*
+*Need to get a screenshot
 
 ---
 
